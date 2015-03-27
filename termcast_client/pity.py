@@ -2,6 +2,7 @@ import errno
 import fcntl
 import os
 import pty
+import select
 import signal
 import termios
 import tty
@@ -76,6 +77,12 @@ def spawn(argv, master_read=pty._read, stdin_read=pty._read, handle_window_size=
                 continue
             if restore:
                 tty.tcsetattr(STDIN_FILENO, tty.TCSAFLUSH, mode)
+        except select.error as e:
+            if not py2compat.py2:  # in Python 2 EINTR is a select.error
+                raise
+            if e[0] == errno.EINTR:
+                continue
+            raise
         break
 
     os.close(master_fd)
